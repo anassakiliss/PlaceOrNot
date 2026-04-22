@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PlaceOrNot — ¿Real o IA?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07070f;
+  --surface: #0f0f1c;
+  --surface2: #161628;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0ff;
+  --muted: rgba(240,240,255,0.35);
+  --muted2: rgba(240,240,255,0.18);
+  --purple: #8b5cf6;
+  --purple2: #a78bfa;
+  --pink: #ec4899;
+  --green: #10b981;
+  --red: #ef4444;
+  --gold: #f59e0b;
+  --grad: linear-gradient(135deg, #8b5cf6, #ec4899);
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font-body); color: var(--text); }
+
+/* ─── SCREENS ─── */
+.screen { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; display: none; }
+.screen.active { display: block; }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp    { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn    { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp   { from { transform:translateY(100%) } to { transform:translateY(0) } }
+@keyframes slideRight{ from { transform:translateX(100%); opacity:0 } to { transform:translateX(0); opacity:1 } }
+@keyframes popIn     { 0%{transform:scale(.5);opacity:0} 65%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+@keyframes shake     { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+@keyframes floatUp   { 0%{transform:translateY(0) translateX(-50%);opacity:1} 100%{transform:translateY(-80px) translateX(-50%);opacity:0} }
+@keyframes particleFly{ 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
+@keyframes scanLine  { 0%{top:-2px} 100%{top:100%} }
+@keyframes glow      { 0%,100%{box-shadow:0 0 30px rgba(139,92,246,.25)} 50%{box-shadow:0 0 60px rgba(139,92,246,.55),0 0 100px rgba(236,72,153,.2)} }
+@keyframes pulse     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+@keyframes orb1move  { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+@keyframes orb2move  { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,30px)} }
+@keyframes cardIn    { from{transform:translateX(110%) rotate(6deg);opacity:0} to{transform:translateX(0) rotate(0);opacity:1} }
+@keyframes revealGlow{ 0%{opacity:0;transform:scale(.9)} 100%{opacity:1;transform:scale(1)} }
+@keyframes timerPulse{ 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes countDown { from{transform:scale(1.3);opacity:0} to{transform:scale(1);opacity:1} }
+
+/* ─── SPLASH ─── */
+#s-splash {
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem 1.5rem; text-align: center; overflow: hidden; position: fixed;
+}
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+.orb-a { width: 350px; height: 350px; background: rgba(139,92,246,.18); top: -100px; left: -100px; animation: orb1move 8s ease-in-out infinite; }
+.orb-b { width: 280px; height: 280px; background: rgba(236,72,153,.14); bottom: -80px; right: -80px; animation: orb2move 10s ease-in-out infinite; }
+.orb-c { width: 200px; height: 200px; background: rgba(16,185,129,.08); top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+.logo-wrap { position: relative; margin-bottom: 1.75rem; animation: fadeUp .6s ease both; }
+.logo-icon {
+  width: 96px; height: 96px; border-radius: 28px;
+  background: var(--grad); display: flex; align-items: center; justify-content: center;
+  font-size: 44px; margin: 0 auto; animation: glow 4s ease-in-out infinite;
+}
+.logo-ring {
+  position: absolute; inset: -8px; border-radius: 36px;
+  border: 1.5px solid rgba(139,92,246,.3); animation: glow 4s ease-in-out infinite 2s;
+}
+.logo-ring2 {
+  position: absolute; inset: -16px; border-radius: 44px;
+  border: 1px solid rgba(139,92,246,.12);
+}
+
+.app-title {
+  font-family: var(--font-display); font-size: 44px; font-weight: 900;
+  color: var(--text); letter-spacing: -2px; line-height: 1;
+  animation: fadeUp .6s .1s ease both;
+}
+.app-title span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.app-sub {
+  font-size: 15px; color: var(--muted); margin: 10px 0 2.5rem;
+  animation: fadeUp .6s .2s ease both; letter-spacing: .2px;
+}
+
+.btn-primary {
+  width: 100%; padding: 18px; border-radius: 20px; border: none; cursor: pointer;
+  font-family: var(--font-display); font-size: 17px; font-weight: 700; color: #fff;
+  background: var(--grad); letter-spacing: .3px; transition: transform .15s, opacity .15s;
+  animation: fadeUp .6s .3s ease both; position: relative; overflow: hidden;
+}
+.btn-primary:hover { transform: scale(1.02); }
+.btn-primary:active { transform: scale(.97); }
+.btn-primary::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+  border-radius: 20px;
+}
+
+.modes-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 10px; width: 100%; animation: fadeUp .6s .4s ease both;
+}
+.mode-card {
+  padding: 14px 12px; border-radius: 18px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer; text-align: left; transition: all .2s;
+}
+.mode-card:hover { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.35); transform: translateY(-2px); }
+.mode-card.locked { opacity: .45; pointer-events: none; }
+.mode-icon { font-size: 22px; margin-bottom: 6px; }
+.mode-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text); }
+.mode-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.lock-tag { font-size: 9px; font-weight: 700; color: var(--gold); background: rgba(245,158,11,.15); border-radius: 5px; padding: 2px 5px; display: inline-block; margin-top: 4px; }
+
+.stats-row {
+  display: flex; gap: 8px; margin-top: 14px; width: 100%;
+  animation: fadeUp .6s .5s ease both;
+}
+.stat-box { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 8px; text-align: center; }
+.stat-n { font-family: var(--font-display); font-size: 22px; font-weight: 800; color: var(--text); }
+.stat-l { font-size: 10px; color: var(--muted2); margin-top: 3px; text-transform: uppercase; letter-spacing: .6px; }
+
+.btn-secondary {
+  width: 100%; padding: 14px; border-radius: 18px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all .2s; animation: fadeUp .6s .35s ease both; margin-top: 8px;
+}
+.btn-secondary:hover { background: var(--surface2); color: var(--text); }
+
+/* ─── GAME SCREEN ─── */
+#s-game { background: var(--bg); min-height: 100vh; }
+
+.game-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 16px 8px; position: sticky; top: 0; background: var(--bg); z-index: 5;
+}
+.chip {
+  border-radius: 20px; padding: 7px 14px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+}
+.chip-score { background: rgba(139,92,246,.18); border: 1px solid rgba(139,92,246,.35); color: var(--purple2); }
+.chip-streak { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.25); color: #f87171; transition: all .2s; }
+.chip-streak.on-fire { background: rgba(239,68,68,.28); border-color: rgba(239,68,68,.55); color: #fff; }
+.chip-level { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+
+.progress-row { display: flex; align-items: center; gap: 8px; padding: 0 16px 8px; }
+.pdots { display: flex; gap: 3px; flex: 1; }
+.pd { height: 3px; flex: 1; border-radius: 2px; background: var(--surface2); transition: all .3s; }
+.pd.done { background: var(--grad); background: linear-gradient(90deg,#8b5cf6,#ec4899); }
+.pd.cur { background: rgba(139,92,246,.45); }
+.rlbl { font-size: 11px; color: var(--muted2); white-space: nowrap; }
+
+.timer-row { padding: 0 16px 10px; }
+.timer-track { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.timer-bar { height: 100%; background: var(--grad); border-radius: 2px; transition: width .1s linear; }
+.timer-bar.danger { background: var(--red); animation: timerPulse .5s ease infinite; }
+
+/* Photo card */
+.card-zone { margin: 0 14px; position: relative; }
+.photo-card {
+  border-radius: 26px; overflow: hidden; height: 320px; position: relative;
+  background: var(--surface); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab; user-select: none; animation: cardIn .45s cubic-bezier(.34,1.2,.64,1);
+}
+.photo-card:active { cursor: grabbing; }
+.photo-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none; transition: transform .3s;
+}
+.photo-card:hover .photo-img { transform: scale(1.02); }
+.card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 55%); }
+.cat-badge {
+  position: absolute; top: 14px; left: 14px;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 20px;
+  padding: 6px 14px; font-size: 12px; font-weight: 600; color: #fff; z-index: 2;
+}
+.swipe-ind {
+  position: absolute; top: 16px; padding: 8px 16px; border-radius: 12px;
+  font-family: var(--font-display); font-size: 16px; font-weight: 800;
+  opacity: 0; transition: opacity .08s; z-index: 3; pointer-events: none;
+}
+.si-real { right: 16px; background: rgba(16,185,129,.3); border: 2px solid var(--green); color: var(--green); }
+.si-ai   { left:  16px; background: rgba(239,68,68,.3);  border: 2px solid var(--red);   color: var(--red);   }
+.scan-fx {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(139,92,246,.9), transparent);
+  pointer-events: none; top: 0; display: none; z-index: 4;
+}
+.scan-fx.go { display: block; animation: scanLine 1.2s linear; }
+
+.reveal-layer {
+  position: absolute; inset: 0; border-radius: 26px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 5;
+}
+.reveal-layer.show { opacity: 1; animation: revealGlow .3s ease; }
+.reveal-layer.ok  { background: rgba(16,185,129,.32); }
+.reveal-layer.bad { background: rgba(239,68,68,.32); }
+.reveal-icon { font-size: 64px; animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+.reveal-txt  { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: #fff; margin-top: 8px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+
+.particles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 26px; z-index: 6; }
+.pt { position: absolute; width: 8px; height: 8px; border-radius: 50%; animation: particleFly .85s ease forwards; }
+
+.float-score { position: absolute; font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--purple2); pointer-events: none; animation: floatUp .9s ease forwards; z-index: 10; left: 50%; top: 40%; }
+
+.hint-zone { padding: 12px 16px 2px; min-height: 34px; text-align: center; }
+.hint-text { font-size: 13px; color: var(--muted); animation: fadeIn .3s ease; }
+
+.ans-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 14px; }
+.abtn {
+  padding: 20px 12px; border-radius: 22px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text);
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all .18s; position: relative; overflow: hidden;
+}
+.abtn::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+.abtn-real::before { background: radial-gradient(circle at 30% 50%, rgba(16,185,129,.25), transparent 70%); }
+.abtn-ai::before   { background: radial-gradient(circle at 70% 50%, rgba(239,68,68,.25), transparent 70%); }
+.abtn:hover::before { opacity: 1; }
+.abtn:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.2); }
+.abtn:active { transform: scale(.96); }
+.abtn.ok-btn  { background: rgba(16,185,129,.2); border-color: var(--green); color: var(--green); animation: popIn .35s ease; }
+.abtn.bad-btn { background: rgba(239,68,68,.15); border-color: var(--red);   color: var(--red);   animation: shake .4s ease; }
+.abtn.dim { pointer-events: none; opacity: .4; }
+
+.next-row { padding: 4px 14px 20px; }
+.btn-next {
+  width: 100%; padding: 15px; border-radius: 18px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--muted); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all .2s; display: none;
+}
+.btn-next:hover { background: var(--surface2); color: var(--text); }
+
+/* ─── GAME OVER ─── */
+#s-over {
+  background: var(--bg); min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem 1.5rem; text-align: center; position: fixed;
+}
+.trophy-big { font-size: 80px; animation: popIn .55s cubic-bezier(.34,1.56,.64,1); margin-bottom: .5rem; }
+.over-lv {
+  background: linear-gradient(135deg, rgba(139,92,246,.25), rgba(236,72,153,.25));
+  border: 1px solid rgba(139,92,246,.4); border-radius: 20px; padding: 8px 20px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--purple2);
+  display: inline-block; margin-bottom: 1rem; animation: fadeUp .4s .1s both;
+}
+.over-title { font-family: var(--font-display); font-size: 32px; font-weight: 900; color: var(--text); letter-spacing: -1px; animation: fadeUp .4s .2s both; }
+.over-sub   { font-size: 14px; color: var(--muted); margin: 6px 0 1.5rem; animation: fadeUp .4s .3s both; }
+.res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 1.5rem; animation: fadeUp .4s .4s both; }
+.res-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px 12px; }
+.res-v { font-family: var(--font-display); font-size: 30px; font-weight: 900; color: var(--text); }
+.res-l { font-size: 11px; color: var(--muted2); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ─── LOGIN ─── */
+#s-login {
+  background: var(--bg); min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem 1.5rem; text-align: center; position: fixed;
+}
+.login-logo { font-size: 36px; margin-bottom: .75rem; animation: fadeUp .5s ease both; }
+.login-title { font-family: var(--font-display); font-size: 26px; font-weight: 900; color: var(--text); animation: fadeUp .5s .1s ease both; }
+.login-sub { font-size: 14px; color: var(--muted); margin: 8px 0 2rem; animation: fadeUp .5s .2s ease both; }
+.btn-google {
+  width: 100%; padding: 16px 20px; border-radius: 18px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text); font-size: 15px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+  transition: all .2s; animation: fadeUp .5s .3s ease both; margin-bottom: 10px;
+}
+.btn-google:hover { background: var(--surface2); border-color: rgba(255,255,255,.2); }
+.g-icon { width: 20px; height: 20px; }
+.btn-skip {
+  width: 100%; padding: 13px; border-radius: 16px; border: none;
+  background: transparent; color: var(--muted); font-size: 13px; cursor: pointer;
+  animation: fadeUp .5s .4s ease both; transition: color .2s;
+}
+.btn-skip:hover { color: var(--text); }
+
+/* ─── SETTINGS ─── */
+#s-settings { background: var(--bg); min-height: 100vh; }
+.settings-head {
+  display: flex; align-items: center; gap: 12px; padding: 18px 16px 12px;
+  position: sticky; top: 0; background: var(--bg); z-index: 10;
+  border-bottom: 1px solid var(--border);
+}
+.back-btn {
+  width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s;
+}
+.back-btn:hover { background: var(--surface2); }
+.head-title { font-family: var(--font-display); font-size: 19px; font-weight: 800; color: var(--text); }
+
+.s-section { padding: 16px 14px 0; }
+.s-label { font-size: 10px; font-weight: 700; color: var(--muted2); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; padding: 0 4px; }
+.s-group { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.s-row {
+  display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .15s;
+}
+.s-row:last-child { border-bottom: none; }
+.s-row:hover { background: rgba(255,255,255,.03); }
+.s-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; margin-right: 12px; flex-shrink: 0; }
+.ic-v { background: rgba(139,92,246,.18); }
+.ic-p { background: rgba(236,72,153,.18); }
+.ic-g { background: rgba(16,185,129,.18); }
+.ic-a { background: rgba(245,158,11,.18); }
+.ic-b { background: rgba(59,130,246,.18); }
+.ic-r { background: rgba(239,68,68,.18); }
+.ic-x { background: rgba(255,255,255,.06); }
+.s-row-body { flex: 1; }
+.s-row-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.s-row-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.chevron { font-size: 16px; color: var(--muted2); }
+.val-tag { font-size: 12px; color: var(--muted); margin-right: 6px; }
+
+.toggle { width: 46px; height: 26px; border-radius: 13px; background: rgba(255,255,255,.1); position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+.toggle.on { background: var(--grad); }
+.toggle-knob { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: transform .2s cubic-bezier(.34,1.4,.64,1); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.toggle.on .toggle-knob { transform: translateX(20px); }
+
+.slider-block { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.slider-block:last-child { border-bottom: none; }
+.slider-top { display: flex; align-items: center; margin-bottom: 12px; }
+.sl-val { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--purple2); margin-left: auto; min-width: 36px; text-align: right; }
+input[type=range] { width: 100%; height: 4px; appearance: none; background: var(--surface2); border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--grad); cursor: pointer; box-shadow: 0 2px 8px rgba(139,92,246,.5); }
+.sl-labels { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: var(--muted2); }
+
+.profile-chip {
+  margin: 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 14px;
+}
+.profile-av { width: 52px; height: 52px; border-radius: 14px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.profile-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text); }
+.profile-tag  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.profile-badge { display: inline-block; background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; color: var(--gold); margin-top: 5px; }
+.edit-chip { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border2); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: auto; }
+
+.danger-group { margin: 16px 14px; background: rgba(239,68,68,.05); border: 1px solid rgba(239,68,68,.12); border-radius: 20px; overflow: hidden; }
+.danger-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(239,68,68,.07); cursor: pointer; transition: background .15s; }
+.danger-row:last-child { border-bottom: none; }
+.danger-row:hover { background: rgba(239,68,68,.06); }
+.danger-title { font-size: 15px; font-weight: 600; color: #f87171; }
+.danger-sub   { font-size: 12px; color: rgba(239,68,68,.4); margin-top: 2px; }
+
+.ver-footer { text-align: center; padding: 20px 14px 32px; font-size: 12px; color: var(--muted2); }
+
+/* ─── RANKING ─── */
+#s-ranking { background: var(--bg); min-height: 100vh; }
+.rank-list { padding: 8px 14px 32px; }
+.rank-row {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+  margin-bottom: 8px; animation: fadeUp .3s ease both;
+}
+.rank-num { font-family: var(--font-display); font-size: 18px; font-weight: 900; color: var(--muted2); width: 28px; text-align: center; }
+.rank-av { width: 42px; height: 42px; border-radius: 12px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.rank-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); }
+.rank-lv   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.rank-score { font-family: var(--font-display); font-size: 18px; font-weight: 900; color: var(--purple2); margin-left: auto; }
+.rank-1 { border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.06); }
+.rank-2 { border-color: rgba(148,163,184,.3); }
+.rank-3 { border-color: rgba(180,113,68,.3); }
+
+/* ─── PRIVACY/TERMS ─── */
+#s-privacy, #s-terms { background: var(--bg); min-height: 100vh; }
+.doc-body { padding: 20px 16px 40px; }
+.doc-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.2); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--green); margin-bottom: 16px; }
+.doc-title { font-family: var(--font-display); font-size: 22px; font-weight: 900; color: var(--text); margin-bottom: 20px; }
+.doc-h { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: rgba(240,240,255,.65); margin-bottom: 8px; }
+.doc-p { font-size: 13px; color: var(--muted); line-height: 1.75; margin-bottom: 20px; }
+
+/* responsive */
+@media (max-width: 400px) { .app-title { font-size: 38px; } .photo-card { height: 280px; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SPLASH ═══════════════ -->
+<div class="screen active" id="s-splash">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+  <div class="logo-wrap">
+    <div class="logo-icon">👁️</div>
+    <div class="logo-ring"></div>
+    <div class="logo-ring2"></div>
+  </div>
+  <div class="app-title">Place<span>OrNot</span></div>
+  <div class="app-sub">¿Eres más listo que la IA?</div>
+  <button class="btn-primary" onclick="startGame('normal')">Jugar ahora</button>
+  <button class="btn-secondary" onclick="showScreen('s-login')">🔑 &nbsp;Iniciar sesión</button>
+  <div class="modes-grid">
+    <div class="mode-card" onclick="startGame('speed')">
+      <div class="mode-icon">⚡</div>
+      <div class="mode-name">Speed</div>
+      <div class="mode-desc">10 segundos por foto</div>
+    </div>
+    <div class="mode-card" onclick="startGame('streak')">
+      <div class="mode-icon">🔥</div>
+      <div class="mode-name">Racha</div>
+      <div class="mode-desc">Un fallo y se acaba</div>
+    </div>
+    <div class="mode-card locked">
+      <div class="mode-icon">⚔️</div>
+      <div class="mode-name">1vs1</div>
+      <div class="mode-desc">Duelo en tiempo real</div>
+      <span class="lock-tag">PRONTO</span>
+    </div>
+    <div class="mode-card" onclick="showScreen('s-ranking')">
+      <div class="mode-icon">🏆</div>
+      <div class="mode-name">Ranking</div>
+      <div class="mode-desc">Top jugadores</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-n" id="sb-best">0</div><div class="stat-l">Record</div></div>
+    <div class="stat-box"><div class="stat-n" id="sb-streak">0</div><div class="stat-l">Racha</div></div>
+    <div class="stat-box"><div class="stat-n" id="sb-games">0</div><div class="stat-l">Partidas</div></div>
+  </div>
+  <button class="btn-secondary" style="margin-top:8px;" onclick="showScreen('s-settings')">⚙️ &nbsp;Ajustes</button>
+</div>
+
+<!-- ═══════════════ GAME ═══════════════ -->
+<div class="screen" id="s-game">
+  <div class="game-topbar">
+    <div class="chip chip-score" id="g-score">0 pts</div>
+    <div class="chip chip-level" id="g-level">Novato</div>
+    <div class="chip chip-streak" id="g-streak">0 🔥</div>
+  </div>
+  <div class="progress-row">
+    <div class="pdots" id="pdots"></div>
+    <div class="rlbl" id="rlbl">1/12</div>
+  </div>
+  <div class="timer-row"><div class="timer-track"><div class="timer-bar" id="tbar" style="width:100%"></div></div></div>
+  <div class="card-zone" id="card-zone">
+    <div class="photo-card" id="photo-card"
+      onmousedown="dragStart(event)" ontouchstart="dragStart(event)">
+      <img class="photo-img" id="photo-img" src="" alt="" draggable="false">
+      <div class="card-overlay"></div>
+      <div class="scan-fx" id="scan-fx"></div>
+      <div class="particles" id="particles"></div>
+      <div class="cat-badge" id="cat-badge">lugar</div>
+      <div class="swipe-ind si-real" id="ind-real">REAL ✓</div>
+      <div class="swipe-ind si-ai"   id="ind-ai">IA 🤖</div>
+      <div class="reveal-layer" id="reveal-layer">
+        <div class="reveal-icon" id="reveal-icon">✓</div>
+        <div class="reveal-txt"  id="reveal-txt"></div>
+      </div>
+    </div>
+    <div class="float-score" id="float-score" style="display:none">+10</div>
+  </div>
+  <div class="hint-zone"><div class="hint-text" id="hint-text"></div></div>
+  <div class="ans-btns">
+    <button class="abtn abtn-real" id="btn-real" onclick="answer('real')">📷 &nbsp;Real</button>
+    <button class="abtn abtn-ai"   id="btn-ai"   onclick="answer('ai')">🤖 &nbsp;IA</button>
+  </div>
+  <div class="next-row"><button class="btn-next" id="btn-next" onclick="nextRound()">Siguiente →</button></div>
+</div>
+
+<!-- ═══════════════ GAME OVER ═══════════════ -->
+<div class="screen" id="s-over">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="trophy-big" id="over-trophy">🏆</div>
+  <div class="over-lv"    id="over-lv">Nivel 1 — Novato</div>
+  <div class="over-title" id="over-title">¡Increíble!</div>
+  <div class="over-sub"   id="over-sub">80% de precisión</div>
+  <div class="res-grid">
+    <div class="res-card"><div class="res-v" id="r-pts">0</div><div class="res-l">Puntos</div></div>
+    <div class="res-card"><div class="res-v" id="r-str">0</div><div class="res-l">Mejor racha</div></div>
+    <div class="res-card"><div class="res-v" id="r-acc">0%</div><div class="res-l">Precisión</div></div>
+    <div class="res-card"><div class="res-v" id="r-cor">0/0</div><div class="res-l">Correctas</div></div>
+  </div>
+  <button class="btn-primary" onclick="goHome()" style="animation:fadeUp .4s .5s both;">Jugar de nuevo</button>
+  <button class="btn-secondary" onclick="showScreen('s-ranking')" style="margin-top:8px;animation:fadeUp .4s .6s both;">Ver ranking 🏆</button>
+</div>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div class="screen" id="s-login">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="login-logo">👁️</div>
+  <div class="login-title">Únete a PlaceOrNot</div>
+  <div class="login-sub">Guarda tu progreso y compite en el ranking global</div>
+  <button class="btn-google" onclick="googleLogin()">
+    <svg class="g-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Continuar con Google
+  </button>
+  <button class="btn-skip" onclick="showScreen('s-splash')">Continuar sin cuenta →</button>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div class="screen" id="s-settings">
+  <div class="settings-head">
+    <button class="back-btn" onclick="showScreen('s-splash')">←</button>
+    <div class="head-title">Ajustes</div>
+  </div>
+
+  <div class="profile-chip">
+    <div class="profile-av">👤</div>
+    <div>
+      <div class="profile-name" id="prof-name">Jugador</div>
+      <div class="profile-tag">@player_001</div>
+      <div class="profile-badge">⭐ Observador</div>
+    </div>
+    <button class="edit-chip">Editar</button>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Sonido</div>
+    <div class="s-group">
+      <div class="slider-block">
+        <div class="slider-top">
+          <div class="s-icon ic-v">🎵</div>
+          <div class="s-row-body"><div class="s-row-title">Música</div><div class="s-row-sub">Música de fondo</div></div>
+          <div class="toggle on" id="t-music" onclick="tog('t-music')"><div class="toggle-knob"></div></div>
+        </div>
+        <input type="range" min="0" max="100" value="70" oninput="slVal(this,'sv-music')">
+        <div class="sl-labels"><span>0</span><span class="sl-val" id="sv-music">70%</span><span>100</span></div>
+      </div>
+      <div class="slider-block">
+        <div class="slider-top">
+          <div class="s-icon ic-p">🔊</div>
+          <div class="s-row-body"><div class="s-row-title">Efectos de sonido</div><div class="s-row-sub">Sonidos al acertar/fallar</div></div>
+          <div class="toggle on" id="t-sfx" onclick="tog('t-sfx')"><div class="toggle-knob"></div></div>
+        </div>
+        <input type="range" min="0" max="100" value="85" oninput="slVal(this,'sv-sfx')">
+        <div class="sl-labels"><span>0</span><span class="sl-val" id="sv-sfx">85%</span><span>100</span></div>
+      </div>
+      <div class="s-row" style="cursor:default;">
+        <div class="s-icon ic-a">📳</div>
+        <div class="s-row-body"><div class="s-row-title">Vibración</div><div class="s-row-sub">Vibrar al responder</div></div>
+        <div class="toggle on" id="t-vib" onclick="tog('t-vib')"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Apariencia</div>
+    <div class="s-group">
+      <div class="s-row">
+        <div class="s-icon ic-v">✨</div>
+        <div class="s-row-body"><div class="s-row-title">Animaciones</div><div class="s-row-sub">Partículas y efectos</div></div>
+        <div class="toggle on" id="t-anim" onclick="tog('t-anim')"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-b">♿</div>
+        <div class="s-row-body"><div class="s-row-title">Reducir movimiento</div><div class="s-row-sub">Para mayor comodidad visual</div></div>
+        <div class="toggle" id="t-reduce" onclick="tog('t-reduce')"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Juego</div>
+    <div class="s-group">
+      <div class="s-row">
+        <div class="s-icon ic-a">🌍</div>
+        <div class="s-row-body"><div class="s-row-title">Idioma</div></div>
+        <div class="val-tag">Español</div><div class="chevron">›</div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-v">⏱️</div>
+        <div class="s-row-body"><div class="s-row-title">Dificultad</div><div class="s-row-sub">Tiempo en modo Speed</div></div>
+        <div class="val-tag">Normal</div><div class="chevron">›</div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-p">📊</div>
+        <div class="s-row-body"><div class="s-row-title">Mostrar pistas</div><div class="s-row-sub">Explicación tras cada foto</div></div>
+        <div class="toggle on" id="t-hints" onclick="tog('t-hints')"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-g">🔔</div>
+        <div class="s-row-body"><div class="s-row-title">Notificaciones</div><div class="s-row-sub">Recordatorio diario</div></div>
+        <div class="toggle on" id="t-notif" onclick="tog('t-notif')"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Legal</div>
+    <div class="s-group">
+      <div class="s-row" onclick="showScreen('s-privacy')">
+        <div class="s-icon ic-b">🔒</div>
+        <div class="s-row-body"><div class="s-row-title">Política de privacidad</div></div>
+        <div class="chevron">›</div>
+      </div>
+      <div class="s-row" onclick="showScreen('s-terms')">
+        <div class="s-icon ic-x">📄</div>
+        <div class="s-row-body"><div class="s-row-title">Términos de uso</div></div>
+        <div class="chevron">›</div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-g">📧</div>
+        <div class="s-row-body"><div class="s-row-title">Contacto</div><div class="s-row-sub">hola@placeornot.app</div></div>
+        <div class="chevron">›</div>
+      </div>
+      <div class="s-row">
+        <div class="s-icon ic-a">⭐</div>
+        <div class="s-row-body"><div class="s-row-title">Valorar la app</div></div>
+        <div class="chevron">›</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="danger-group">
+    <div class="danger-row">
+      <div class="s-icon ic-r">🗑️</div>
+      <div><div class="danger-title">Borrar progreso</div><div class="danger-sub">Reinicia puntos y rachas</div></div>
+    </div>
+    <div class="danger-row">
+      <div class="s-icon ic-r">❌</div>
+      <div><div class="danger-title">Eliminar cuenta</div><div class="danger-sub">Acción irreversible</div></div>
+    </div>
+  </div>
+  <div class="ver-footer">PlaceOrNot v1.0.0 · Hecho con ❤️</div>
+</div>
+
+<!-- ═══════════════ RANKING ═══════════════ -->
+<div class="screen" id="s-ranking">
+  <div class="settings-head">
+    <button class="back-btn" onclick="showScreen('s-splash')">←</button>
+    <div class="head-title">Ranking Global 🏆</div>
+  </div>
+  <div class="rank-list" id="rank-list"></div>
+</div>
+
+<!-- ═══════════════ PRIVACY ═══════════════ -->
+<div class="screen" id="s-privacy">
+  <div class="settings-head">
+    <button class="back-btn" onclick="showScreen('s-settings')">←</button>
+    <div class="head-title">Privacidad</div>
+  </div>
+  <div class="doc-body">
+    <div class="doc-badge">🔒 Tus datos están protegidos</div>
+    <div class="doc-title">Política de Privacidad</div>
+    <div class="doc-h">¿Qué datos recogemos?</div>
+    <div class="doc-p">Recogemos únicamente los datos necesarios para que el juego funcione: tu nombre de usuario, puntuaciones y preferencias de configuración. Nunca vendemos tus datos a terceros.</div>
+    <div class="doc-h">¿Cómo usamos tus datos?</div>
+    <div class="doc-p">Tus datos se usan exclusivamente para mostrarte tu progreso, mantener el ranking global y personalizar tu experiencia. No usamos tus datos para publicidad.</div>
+    <div class="doc-h">¿Compartimos tus datos?</div>
+    <div class="doc-p">Nunca compartimos tus datos personales con terceros. El ranking público solo muestra tu nombre de usuario y puntuación, nunca información personal.</div>
+    <div class="doc-h">Tus derechos</div>
+    <div class="doc-p">Tienes derecho a acceder, modificar o eliminar tus datos en cualquier momento desde los ajustes. Para cualquier consulta: hola@placeornot.app</div>
+    <div class="doc-h">Última actualización</div>
+    <div class="doc-p">Abril 2026 · PlaceOrNot v1.0</div>
+  </div>
+</div>
+
+<!-- ═══════════════ TERMS ═══════════════ -->
+<div class="screen" id="s-terms">
+  <div class="settings-head">
+    <button class="back-btn" onclick="showScreen('s-settings')">←</button>
+    <div class="head-title">Términos de uso</div>
+  </div>
+  <div class="doc-body">
+    <div class="doc-title">Términos y Condiciones</div>
+    <div class="doc-h">Uso de la app</div>
+    <div class="doc-p">PlaceOrNot es un juego educativo y de entretenimiento. Al usar la app aceptas no intentar manipular el sistema de puntuaciones ni el ranking global.</div>
+    <div class="doc-h">Contenido</div>
+    <div class="doc-p">Las imágenes usadas en el juego son de uso libre (Unsplash, Pexels) o generadas por IA con fines educativos. Ninguna imagen tiene intención de engañar fuera del contexto del juego.</div>
+    <div class="doc-h">Cuenta de usuario</div>
+    <div class="doc-p">Eres responsable de mantener la seguridad de tu cuenta. No se permite crear múltiples cuentas para manipular el ranking.</div>
+    <div class="doc-h">Contacto</div>
+    <div class="doc-p">Para cualquier duda: hola@placeornot.app</div>
+  </div>
+</div>
+
+<script>
+// ─── DATOS ───
+const CARDS = [
+  { url:'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80', cat:'moda', ans:'real', hint:'Foto real de moda editorial — los tejidos son demasiado perfectos para ser IA' },
+  { url:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80', cat:'naturaleza', ans:'real', hint:'Foto real — los Alpes suizos al amanecer' },
+  { url:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80', cat:'comida', ans:'real', hint:'Foto real de un restaurante — la textura del plato es auténtica' },
+  { url:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80', cat:'ciudad', ans:'real', hint:'Foto real de Chicago — la arquitectura es verificable' },
+  { url:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80', cat:'naturaleza', ans:'real', hint:'Bosque real — los rayos de luz son físicamente correctos' },
+  { url:'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80', cat:'hotel', ans:'real', hint:'Foto real de un hotel de lujo — los reflejos son naturales' },
+  { url:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80', cat:'persona', ans:'real', hint:'Foto real — los poros de la piel y las imperfecciones son naturales' },
+  { url:'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80', cat:'naturaleza', ans:'real', hint:'Vista aérea real — las sombras coinciden con la posición del sol' },
+  { url:'https://images.unsplash.com/photo-1555992336-03a23c7b20ee?w=800&q=80', cat:'comida', ans:'real', hint:'Pastelería real — los cortes del bollo son irregulares y naturales' },
+  { url:'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&q=80', cat:'ciudad', ans:'real', hint:'Foto real de Tokio de noche — los rótulos son legibles y coherentes' },
+  { url:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80', cat:'personas', ans:'real', hint:'Foto grupal real — las expresiones y sombras son naturales' },
+  { url:'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=800&q=80', cat:'naturaleza', ans:'real', hint:'Montaña real — la nieve irregular delata que es fotografía auténtica' },
+];
+
+const LEVELS = [
+  {min:0,n:'Novato'},{min:30,n:'Observador'},
+  {min:80,n:'Detective'},{min:150,n:'Experto'},{min:250,n:'Maestro IA'}
+];
+
+const FAKE_RANKING = [
+  {av:'🥷',name:'shadowplay',lv:'Maestro IA',pts:1240},
+  {av:'🦊',name:'foxeye_99',lv:'Experto',pts:980},
+  {av:'🐉',name:'dragonvision',lv:'Experto',pts:875},
+  {av:'🌙',name:'moondetective',lv:'Detective',pts:720},
+  {av:'⚡',name:'speedrunner_x',lv:'Detective',pts:655},
+  {av:'🎯',name:'bullseye',lv:'Observador',pts:420},
+  {av:'🔭',name:'stargazer',lv:'Observador',pts:380},
+  {av:'🤖',name:'aihunter',lv:'Observador',pts:310},
+];
+
+let score=0,streak=0,best=0,round=0,correct=0,total=0,answered=false;
+let mode='normal',timer=null,timeLeft=10,shuffled=[];
+let allBest=0,allBestS=0,games=0;
+let dragX=0,dragging=false,startX=0;
+
+function lv(s){let l=LEVELS[0];for(const x of LEVELS)if(s>=x.min)l=x;return l;}
+function shuf(a){return[...a].sort(()=>Math.random()-.5);}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome(){
+  document.getElementById('sb-best').textContent=allBest;
+  document.getElementById('sb-streak').textContent=allBestS;
+  document.getElementById('sb-games').textContent=games;
+  showScreen('s-splash');
+}
+
+function startGame(m){
+  mode=m;score=0;streak=0;best=0;round=0;correct=0;total=0;answered=false;
+  shuffled=shuf(CARDS);
+  buildDots();
+  showScreen('s-game');
+  loadCard();
+}
+
+function buildDots(){
+  const c=document.getElementById('pdots');c.innerHTML='';
+  CARDS.forEach((_,i)=>{const d=document.createElement('div');d.className='pd';d.id='pd'+i;c.appendChild(d);});
+}
+
+function updateDots(){
+  CARDS.forEach((_,i)=>{
+    const d=document.getElementById('pd'+i);if(!d)return;
+    d.className='pd'+(i<round?' done':i===round?' cur':'');
+  });
+}
+
+function loadCard(){
+  const c=shuffled[round%shuffled.length];
+  const card=document.getElementById('photo-card');
+  card.style.transform='';card.style.opacity='';
+  document.getElementById('photo-img').src=c.url+'&t='+Math.random();
+  document.getElementById('cat-badge').textContent=c.cat;
+  document.getElementById('hint-text').textContent='';
+  document.getElementById('btn-real').className='abtn abtn-real';
+  document.getElementById('btn-ai').className='abtn abtn-ai';
+  document.getElementById('reveal-layer').className='reveal-layer';
+  document.getElementById('ind-real').style.opacity='0';
+  document.getElementById('ind-ai').style.opacity='0';
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('tbar').className='timer-bar';
+  document.getElementById('rlbl').textContent=(round+1)+'/'+CARDS.length;
+  document.getElementById('particles').innerHTML='';
+  answered=false;
+  updateDots();updateChips();
+  const sf=document.getElementById('scan-fx');sf.className='scan-fx';
+  void sf.offsetWidth;sf.className='scan-fx go';
+  setTimeout(()=>sf.className='scan-fx',1300);
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(timer);
+  const bar=document.getElementById('tbar');
+  if(mode!=='speed'){bar.style.width='100%';return;}
+  timeLeft=10;bar.style.width='100%';
+  timer=setInterval(()=>{
+    timeLeft-=.1;
+    const pct=Math.max(0,timeLeft/10*100);
+    bar.style.width=pct+'%';
+    if(timeLeft<=3)bar.className='timer-bar danger';
+    if(timeLeft<=0){clearInterval(timer);timeUp();}
+  },100);
+}
+
+function timeUp(){
+  if(answered)return;
+  answered=true;streak=0;total++;
+  document.getElementById('hint-text').textContent='¡Tiempo agotado!';
+  document.getElementById('btn-next').style.display='block';
+  updateChips();
+}
+
+function answer(choice){
+  if(answered)return;
+  answered=true;total++;
+  clearInterval(timer);
+  const c=shuffled[round%shuffled.length];
+  const ok=choice===c.ans;
+  const bReal=document.getElementById('btn-real');
+  const bAi=document.getElementById('btn-ai');
+  const corrBtn=c.ans==='real'?bReal:bAi;
+  const wrongBtn=c.ans==='real'?bAi:bReal;
+
+  if(ok){
+    correct++;streak++;if(streak>best)best=streak;
+    const pts=mode==='speed'?Math.round(10+timeLeft*5):10;
+    const bonus=streak>=3?streak*2:0;
+    score+=pts+bonus;
+    (choice==='real'?bReal:bAi).className='abtn abtn-real ok-btn';
+    wrongBtn.className+=' dim';
+    showReveal(true,streak>=3?'RACHA x'+streak+'! +'+(pts+bonus)+'pts':'CORRECTO! +'+pts+' pts');
+    spawnParticles(true);
+    showFloat('+'+(pts+bonus)+'pts');
+    if(streak>=3)document.getElementById('g-streak').className='chip chip-streak on-fire';
+  } else {
+    corrBtn.className+=' ok-btn';
+    wrongBtn.className=(choice==='real'?'abtn abtn-real':'abtn abtn-ai')+' bad-btn';
+    corrBtn.classList.add('dim');
+    showReveal(false,'ERA '+(c.ans==='ai'?'IA 🤖':'REAL 📷'));
+    spawnParticles(false);
+    if(mode==='streak'){setTimeout(endGame,1300);streak=0;}
+    else streak=0;
+  }
+
+  document.getElementById('hint-text').textContent=c.hint;
+  updateChips();
+  document.getElementById('btn-next').style.display='block';
+  if(round>=CARDS.length-1&&mode!=='streak')setTimeout(endGame,1500);
+}
+
+function showReveal(ok,msg){
+  const o=document.getElementById('reveal-layer');
+  o.className='reveal-layer show '+(ok?'ok':'bad');
+  document.getElementById('reveal-icon').textContent=ok?'✓':'✗';
+  document.getElementById('reveal-txt').textContent=msg;
+}
+
+function spawnParticles(ok){
+  const c=document.getElementById('particles');c.innerHTML='';
+  const colors=ok?['#10b981','#34d399','#6ee7b7','#a7f3d0']:['#ef4444','#f87171','#fca5a5'];
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');p.className='pt';
+    const angle=Math.random()*360;
+    const dist=50+Math.random()*130;
+    p.style.cssText=`left:${25+Math.random()*50}%;top:${25+Math.random()*50}%;background:${colors[i%colors.length]};--tx:${Math.cos(angle*Math.PI/180)*dist}px;--ty:${Math.sin(angle*Math.PI/180)*dist}px;animation-delay:${Math.random()*.2}s;`;
+    c.appendChild(p);
+  }
+}
+
+function showFloat(txt){
+  const el=document.getElementById('float-score');
+  el.textContent=txt;el.style.display='block';
+  el.style.animation='none';void el.offsetWidth;
+  el.style.animation='floatUp .9s ease forwards';
+  setTimeout(()=>el.style.display='none',900);
+}
+
+function updateChips(){
+  document.getElementById('g-score').textContent=score+' pts';
+  document.getElementById('g-streak').textContent=streak+' 🔥';
+  document.getElementById('g-level').textContent=lv(score).n;
+}
+
+function nextRound(){
+  round++;
+  if(round>=CARDS.length&&mode!=='streak'){endGame();return;}
+  const card=document.getElementById('photo-card');
+  card.style.transition='transform .28s ease,opacity .28s ease';
+  card.style.transform='translateX(-115%)';
+  card.style.opacity='0';
+  setTimeout(()=>{
+    card.style.transition='';
+    card.style.transform='translateX(115%)';
+    loadCard();
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        card.style.transition='transform .38s cubic-bezier(.34,1.2,.64,1),opacity .3s ease';
+        card.style.transform='';card.style.opacity='1';
+      });
+    });
+    setTimeout(()=>card.style.transition='',400);
+  },280);
+}
+
+function endGame(){
+  clearInterval(timer);games++;
+  if(score>allBest)allBest=score;
+  if(best>allBestS)allBestS=best;
+  const acc=total?Math.round(correct/total*100):0;
+  const l=lv(score);
+  document.getElementById('over-trophy').textContent=score>=200?'🏆':score>=100?'🥈':'🎯';
+  document.getElementById('over-lv').textContent='Nivel '+(LEVELS.indexOf(l)+1)+' — '+l.n;
+  document.getElementById('over-title').textContent=score>=200?'¡Leyenda!':score>=120?'¡Increíble!':score>=60?'¡Bien jugado!':'Sigue practicando';
+  document.getElementById('over-sub').textContent=acc+'% de precisión · '+correct+' fotos acertadas de '+total;
+  document.getElementById('r-pts').textContent=score;
+  document.getElementById('r-str').textContent=best;
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('r-cor').textContent=correct+'/'+total;
+  showScreen('s-over');
+}
+
+// ─── DRAG ───
+function dragStart(e){
+  if(answered)return;
+  dragging=true;startX=e.touches?e.touches[0].clientX:e.clientX;
+  document.addEventListener('mousemove',dragMove);document.addEventListener('mouseup',dragEnd);
+  document.addEventListener('touchmove',dragMove,{passive:true});document.addEventListener('touchend',dragEnd);
+}
+function dragMove(e){
+  if(!dragging)return;
+  const x=(e.touches?e.touches[0].clientX:e.clientX)-startX;dragX=x;
+  document.getElementById('photo-card').style.transform=`translateX(${x}px) rotate(${x*.04}deg)`;
+  const p=Math.min(Math.abs(x)/90,1);
+  document.getElementById('ind-real').style.opacity=x>0?p:0;
+  document.getElementById('ind-ai').style.opacity=x<0?p:0;
+}
+function dragEnd(){
+  dragging=false;
+  document.removeEventListener('mousemove',dragMove);document.removeEventListener('mouseup',dragEnd);
+  document.removeEventListener('touchmove',dragMove);document.removeEventListener('touchend',dragEnd);
+  const card=document.getElementById('photo-card');
+  if(Math.abs(dragX)>90){answer(dragX>0?'real':'ai');}
+  else{
+    card.style.transition='transform .3s cubic-bezier(.34,1.4,.64,1)';
+    card.style.transform='';
+    document.getElementById('ind-real').style.opacity='0';
+    document.getElementById('ind-ai').style.opacity='0';
+    setTimeout(()=>card.style.transition='',300);
+  }
+  dragX=0;
+}
+
+// ─── SETTINGS ───
+function tog(id){document.getElementById(id).classList.toggle('on');}
+function slVal(el,id){document.getElementById(id).textContent=el.value+'%';}
+
+// ─── LOGIN ───
+function googleLogin(){
+  document.getElementById('prof-name').textContent='Usuario Google';
+  showScreen('s-splash');
+}
+
+// ─── RANKING ───
+function buildRanking(){
+  const list=document.getElementById('rank-list');list.innerHTML='';
+  const medals=['🥇','🥈','🥉'];
+  FAKE_RANKING.forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.className='rank-row'+(i<3?' rank-'+(i+1):'');
+    row.style.animationDelay=(i*.06)+'s';
+    row.innerHTML=`
+      <div class="rank-num">${i<3?medals[i]:i+1}</div>
+      <div class="rank-av">${p.av}</div>
+      <div><div class="rank-name">${p.name}</div><div class="rank-lv">${p.lv}</div></div>
+      <div class="rank-score">${p.pts}</div>`;
+    list.appendChild(row);
+  });
+}
+buildRanking();
+</script>
+</body>
+</html>
